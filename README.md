@@ -2,16 +2,13 @@
 
 A production-ready Java Spring Boot library for multi-datacenter JMS messaging with enterprise-grade features including datacenter affinity, intelligent routing, failover, and resiliency patterns.
 
-> 📚 **New!** Comprehensive documentation now available:
-> - 📖 **[User Guide](docs/USER_GUIDE.md)** - Complete installation, configuration, and usage guide
-> - ⚡ **[Quick Reference](docs/QUICK_REFERENCE.md)** - Developer quick reference and troubleshooting
-> - 🆚 **[Feature Comparison](FEA## 📚 Documentation
+## 📚 Documentation
 
 - **📖 [Comprehensive User Guide](docs/USER_GUIDE.md)** - Complete documentation covering installation, configuration, usage, monitoring, security, and best practices
+- **⚙️ [Configuration Guide](docs/CONFIGURATION_GUIDE.md)** - Comprehensive YAML configuration reference with examples for all features
 - **⚡ [Quick Reference](docs/QUICK_REFERENCE.md)** - Developer quick reference with common patterns and troubleshooting
 - **🆚 [Feature Comparison](docs/FEATURE_COMPARISON.md)** - Detailed comparison vs Standard Spring JMS showing advantages and migration path
-- **🔧 Configuration** - See examples in this README and detailed options in the User Guide
-- **🏥 Health & Monitoring** - Built-in actuator endpoints and custom health indicatorsOMPARISON.md)** - Detailed comparison vs Standard Spring JMS
+- **🏥 Health & Monitoring** - Built-in actuator endpoints and custom health indicators
 
 ## 🌟 Key Features
 

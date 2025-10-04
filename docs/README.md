@@ -7,6 +7,7 @@ This directory contains comprehensive documentation for the Pro Spring JMS Multi
 ### Getting Started
 
 - **[User Guide](USER_GUIDE.md)** - Complete installation, configuration, and usage guide (1,200+ lines)
+- **[Configuration Guide](CONFIGURATION_GUIDE.md)** - Comprehensive YAML configuration reference with examples
 - **[Quick Reference](QUICK_REFERENCE.md)** - Developer quick reference with common patterns and troubleshooting
 
 ### Analysis & Comparisons
