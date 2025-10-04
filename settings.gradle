@@ -1,0 +1,4 @@
+rootProject.name = 'pro-spring-jms'
+
+// Include the lib module as a subproject
+include 'lib'

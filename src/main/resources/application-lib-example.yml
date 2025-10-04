@@ -1,0 +1,180 @@
+# JMS Library Configuration - Production Example
+# This demonstrates how to configure the JMS library for production use
+
+jms:
+  lib:
+    # Primary datacenter for default operations
+    primaryDatacenter: "dc1-artemis"
+    
+    # Datacenter configurations
+    datacenters:
+      # Datacenter 1 - ActiveMQ Artemis (Primary)
+      dc1-artemis:
+        type: "artemis"
+        host: "artemis-dc1.example.com"
+        port: 61616
+        username: "artemis"
+        password: "artemis123"
+        clientId: "pro-spring-jms-dc1"
+        enabled: true
+        priority: 100  # Highest priority
+        affinity:
+          region: "us-east-1"
+          zone: "us-east-1a"
+          weight: 100
+        connectionPool:
+          maxPoolSize: 20
+          minPoolSize: 5
+          maxIdleTimeMs: 300000
+          validationIntervalMs: 30000
+        queues:
+          orders: "queue://ORDERS"
+          notifications: "queue://NOTIFICATIONS"
+          deadLetter: "queue://DLQ"
+        topics:
+          events: "topic://EVENTS"
+          alerts: "topic://ALERTS"
+        healthCheck:
+          enabled: true
+          intervalMs: 30000
+          timeoutMs: 5000
+      
+      # Datacenter 2 - ActiveMQ Artemis (Failover)
+      dc2-artemis:
+        type: "artemis"
+        host: "artemis-dc2.example.com"
+        port: 61616
+        username: "artemis"
+        password: "artemis123"
+        clientId: "pro-spring-jms-dc2"
+        enabled: true
+        priority: 200  # Lower priority (failover)
+        affinity:
+          region: "us-west-2"
+          zone: "us-west-2a"
+          weight: 80
+        connectionPool:
+          maxPoolSize: 15
+          minPoolSize: 3
+          maxIdleTimeMs: 300000
+          validationIntervalMs: 30000
+        queues:
+          orders: "queue://ORDERS"
+          notifications: "queue://NOTIFICATIONS"
+          deadLetter: "queue://DLQ"
+        topics:
+          events: "topic://EVENTS"
+          alerts: "topic://ALERTS"
+      
+      # Datacenter 3 - IBM MQ (Enterprise)
+      dc3-ibmmq:
+        type: "ibmmq"
+        host: "ibmmq-dc3.example.com"
+        port: 1414
+        queueManager: "QM_DC3"
+        channel: "SYSTEM.DEF.SVRCONN"
+        username: "mquser"
+        password: "mqpass123"
+        clientId: "pro-spring-jms-dc3"
+        enabled: true
+        priority: 150
+        affinity:
+          region: "eu-central-1"
+          zone: "eu-central-1a"
+          weight: 90
+        connectionPool:
+          maxPoolSize: 25
+          minPoolSize: 5
+          maxIdleTimeMs: 600000
+          validationIntervalMs: 60000
+        queues:
+          orders: "ORDERS.QUEUE"
+          notifications: "NOTIFICATIONS.QUEUE"
+          deadLetter: "DEAD.LETTER.QUEUE"
+        topics:
+          events: "EVENTS.TOPIC"
+          alerts: "ALERTS.TOPIC"
+    
+    # Failover configuration
+    failover:
+      enabled: true
+      automaticFailover: true
+      failoverTimeoutMs: 10000
+      retryAttempts: 3
+      retryDelayMs: 2000
+      healthCheckFailureThreshold: 3
+      strategies:
+        - type: "region-affinity"  # Prefer same region
+          priority: 1
+        - type: "priority-based"   # Use datacenter priority
+          priority: 2
+        - type: "round-robin"      # Round-robin among healthy
+          priority: 3
+    
+    # Load balancing configuration
+    loadBalancing:
+      enabled: true
+      strategy: "weighted-round-robin"  # Options: round-robin, weighted-round-robin, least-connections
+      stickySessions: false
+      healthAware: true
+      
+    # Resiliency configuration
+    resiliency:
+      circuitBreaker:
+        enabled: true
+        failureThreshold: 5
+        resetTimeoutMs: 60000
+        halfOpenMaxCalls: 3
+      retry:
+        enabled: true
+        maxAttempts: 3
+        backoffMs: 1000
+        maxBackoffMs: 10000
+        multiplier: 2.0
+      rateLimiter:
+        enabled: true
+        maxConcurrentCalls: 100
+        maxWaitMs: 5000
+    
+    # Health monitoring configuration
+    healthCheck:
+      enabled: true
+      intervalMs: 30000      # Check every 30 seconds
+      timeoutMs: 5000        # 5 second timeout
+      retryCount: 3          # Retry 3 times before marking unhealthy
+      retryDelayMs: 1000     # 1 second between retries
+
+# Spring Boot JMS Configuration (embedded Artemis for development)
+spring:
+  artemis:
+    mode: embedded
+    embedded:
+      enabled: true
+      persistent: false
+      data-directory: target/artemis-data
+    broker-url: vm://0
+    user: artemis
+    password: artemis
+
+# Actuator endpoints for health monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,jms
+  endpoint:
+    health:
+      show-details: always
+  health:
+    jms:
+      enabled: true
+
+# Logging configuration
+logging:
+  level:
+    '[com.prospringjms]': DEBUG
+    '[org.apache.activemq]': INFO
+    '[com.ibm.mq]': INFO
+    '[org.springframework.jms]': INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

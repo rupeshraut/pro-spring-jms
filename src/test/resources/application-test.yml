@@ -1,0 +1,12 @@
+# Test Configuration
+server:
+  port: 0
+
+spring:
+  application:
+    name: pro-spring-jms-demo-test
+
+logging:
+  level:
+    root: WARN
+    '[com.prospringjms]': INFO

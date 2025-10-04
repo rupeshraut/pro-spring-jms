@@ -1,0 +1,45 @@
+# Production Profile Configuration
+logging:
+  level:
+    '[com.example.jms]': INFO
+    root: WARN
+
+jms:
+  default-datacenter: primary
+  datacenters:
+    primary:
+      type: ibmmq
+      host: prod-mq-primary.company.com
+      port: 1414
+      queue-manager: PROD_QM1
+      channel: PROD.SVRCONN
+      username: ${MQ_USERNAME:produser}
+      password: ${MQ_PASSWORD:prodpass}
+      connection-pool:
+        max-connections: 20
+        idle-timeout: 60000
+        max-sessions-per-connection: 15
+      queues:
+        orders: PROD.ORDERS.QUEUE
+        notifications: PROD.NOTIFICATIONS.QUEUE
+        dlq: PROD.DEAD.LETTER.QUEUE
+      topics:
+        events: PROD.EVENTS.TOPIC
+        
+    secondary:
+      type: artemis
+      host: prod-artemis-secondary.company.com
+      port: 61616
+      username: ${ARTEMIS_USERNAME:artemisuser}
+      password: ${ARTEMIS_PASSWORD:artemispass}
+      client-id: pro-spring-jms-prod-secondary
+      connection-pool:
+        max-connections: 15
+        idle-timeout: 45000
+        max-sessions-per-connection: 10
+      queues:
+        orders: prod.orders.queue.secondary
+        notifications: prod.notifications.queue.secondary
+        dlq: prod.dlq.queue.secondary
+      topics:
+        events: prod.events.topic.secondary

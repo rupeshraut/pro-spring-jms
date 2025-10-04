@@ -1,0 +1,36 @@
+# Pro Spring JMS Demo Application Configuration
+server:
+  port: 8080
+  
+# Application info
+info:
+  app:
+    name: Pro Spring JMS Multi-Datacenter Demo
+    description: Demonstration of the Pro Spring JMS Library with multi-datacenter messaging support
+    version: 1.0.0
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    '[com.prospringjms]': DEBUG
+    '[org.springframework.jms]': INFO
+    '[org.apache.activemq]': INFO
+    '[com.ibm.mq]': INFO
+
+# Spring Boot configuration
+spring:
+  application:
+    name: pro-spring-jms-demo
+  jmx:
+    enabled: true
+    
+# Management endpoint configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

@@ -1,0 +1,147 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' version '3.2.12'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'maven-publish'
+}
+
+group = 'com.prospringjms'
+version = '1.0.0'
+description = 'Pro Spring JMS Multi-Datacenter Library'
+
+java {
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+    withJavadocJar()
+    withSourcesJar()
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot - API only for library
+    api 'org.springframework.boot:spring-boot-starter'
+    api 'org.springframework.boot:spring-boot-starter-actuator'
+    api 'org.springframework.boot:spring-boot-configuration-processor'
+    
+    // Jakarta JMS - Core API
+    api 'jakarta.jms:jakarta.jms-api:3.1.0'
+    api 'org.springframework:spring-jms:6.1.0'
+    
+    // Message Broker Support
+    api 'org.apache.activemq:artemis-jakarta-client:2.31.2'
+    api 'com.ibm.mq:com.ibm.mq.allclient:9.3.4.1'
+    api 'org.messaginghub:pooled-jms:3.1.4'
+    
+    // JSON processing
+    api 'com.fasterxml.jackson.core:jackson-databind'
+    api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    
+    // Resilience4j - Core resilience patterns
+    api 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+    api 'io.github.resilience4j:resilience4j-circuitbreaker:2.1.0'
+    api 'io.github.resilience4j:resilience4j-retry:2.1.0'
+    api 'io.github.resilience4j:resilience4j-ratelimiter:2.1.0'
+    api 'io.github.resilience4j:resilience4j-bulkhead:2.1.0'
+    api 'io.github.resilience4j:resilience4j-timelimiter:2.1.0'
+    api 'io.github.resilience4j:resilience4j-micrometer:2.1.0'
+    
+    // Validation
+    api 'org.springframework.boot:spring-boot-starter-validation'
+    
+    // Optional dependencies that applications might need
+    compileOnly 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.apache.activemq:artemis-jakarta-server:2.31.2'
+    compileOnly 'org.springframework.boot:spring-boot-starter-artemis'
+    
+    // Annotation processing
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    
+    // Testing dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.apache.activemq:artemis-junit:2.31.2'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.testcontainers:testcontainers-bom:1.19.3"
+    }
+}
+
+// Disable Spring Boot executable JAR for library
+jar {
+    enabled = true
+    archiveClassifier = ''
+    archiveBaseName = 'pro-spring-jms-lib'
+}
+
+bootJar {
+    enabled = false
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Publishing configuration
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'Pro Spring JMS Multi-Datacenter Library'
+                description = 'Enterprise-grade JMS library with multi-datacenter support, intelligent routing, automatic failover, and comprehensive resilience patterns'
+                url = 'https://github.com/your-org/pro-spring-jms'
+                
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'dev-team'
+                        name = 'Development Team'
+                        email = 'dev-team@company.com'
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:git://github.com/your-org/pro-spring-jms.git'
+                    developerConnection = 'scm:git:ssh://github.com/your-org/pro-spring-jms.git'
+                    url = 'https://github.com/your-org/pro-spring-jms'
+                }
+            }
+        }
+    }
+}
+
+// Set professional artifact name
+archivesBaseName = 'pro-spring-jms-lib'
+
+// Generate Javadocs
+javadoc {
+    if(JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.author = true
+    options.version = true
+    options.use = true
+    options.windowTitle = "Pro Spring JMS Library ${project.version} API"
+    options.docTitle = "Pro Spring JMS Library ${project.version} API"
+}

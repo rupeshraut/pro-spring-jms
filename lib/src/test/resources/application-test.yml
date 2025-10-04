@@ -1,0 +1,37 @@
+# Test Profile Configuration
+spring:
+  artemis:
+    mode: embedded
+    embedded:
+      enabled: true
+      persistent: false
+  jms:
+    template:
+      default-destination: test.queue
+
+logging:
+  level:
+    '[com.example.jms]': DEBUG
+    root: WARN
+
+# Minimal configuration for testing
+jms:
+  default-datacenter: test-dc
+  datacenters:
+    test-dc:
+      type: artemis
+      host: localhost
+      port: 61616
+      username: admin
+      password: admin
+      client-id: pro-spring-jms-test
+      connection-pool:
+        max-connections: 2
+        idle-timeout: 10000
+        max-sessions-per-connection: 2
+      queues:
+        orders: test.orders.queue
+        notifications: test.notifications.queue
+        dlq: test.dlq.queue
+      topics:
+        events: test.events.topic

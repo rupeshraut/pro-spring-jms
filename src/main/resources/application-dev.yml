@@ -1,0 +1,26 @@
+# Development Profile Configuration
+logging:
+  level:
+    '[com.example.jms]': DEBUG
+    root: INFO
+
+jms:
+  default-datacenter: dc1
+  datacenters:
+    dc1:
+      type: artemis
+      host: localhost
+      port: 61616
+      username: admin
+      password: admin
+      client-id: pro-spring-jms-dev-dc1
+      connection-pool:
+        max-connections: 5
+        idle-timeout: 30000
+        max-sessions-per-connection: 5
+      queues:
+        orders: dev.orders.queue
+        notifications: dev.notifications.queue
+        dlq: dev.dlq.queue
+      topics:
+        events: dev.events.topic

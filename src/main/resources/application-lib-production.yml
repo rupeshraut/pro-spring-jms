@@ -1,0 +1,218 @@
+# JMS Library Production Configuration Example
+# This file demonstrates how to configure the JMS library for production use with multi-datacenter support
+
+# Application configuration
+spring:
+  application:
+    name: pro-spring-jms-lib-example
+  profiles:
+    active: prod
+    
+# JMS Library Configuration
+jms:
+  lib:
+    # Primary datacenter for default operations
+    primary-datacenter: "us-east-1-artemis"
+    
+    # Datacenter definitions
+    datacenters:
+      # US East Artemis Cluster
+      us-east-1-artemis:
+        type: artemis
+        host: artemis-us-east-1.company.com
+        port: 61616
+        username: ${JMS_USERNAME:jms-user}
+        password: ${JMS_PASSWORD:jms-pass}
+        client-id: ${spring.application.name}-us-east-1
+        enabled: true
+        priority: 100
+        connection-pool:
+          max-connections: 20
+          idle-timeout: 300000
+          max-sessions-per-connection: 10
+          connection-timeout: 5000
+          reconnect-interval: 10000
+        queues:
+          orders: "orders.queue"
+          notifications: "notifications.queue"
+          deadletter: "dlq.queue"
+        topics:
+          events: "events.topic"
+          audit: "audit.topic"
+        affinity:
+          region: "us-east"
+          zone: "us-east-1a"
+          preferred-datacenters: ["us-east-1-artemis", "us-east-2-artemis"]
+          excluded-datacenters: []
+        health-check:
+          enabled: true
+          interval-ms: 30000
+          timeout-ms: 5000
+          
+      # US East Backup Artemis 
+      us-east-2-artemis:
+        type: artemis
+        host: artemis-us-east-2.company.com
+        port: 61616
+        username: ${JMS_USERNAME:jms-user}
+        password: ${JMS_PASSWORD:jms-pass}
+        client-id: ${spring.application.name}-us-east-2
+        enabled: true
+        priority: 200
+        connection-pool:
+          max-connections: 20
+          idle-timeout: 300000
+          max-sessions-per-connection: 10
+          connection-timeout: 5000
+          reconnect-interval: 10000
+        queues:
+          orders: "orders.queue"
+          notifications: "notifications.queue"
+          deadletter: "dlq.queue"
+        topics:
+          events: "events.topic"
+          audit: "audit.topic"
+        affinity:
+          region: "us-east"
+          zone: "us-east-1b"
+          preferred-datacenters: ["us-east-2-artemis", "us-east-1-artemis"]
+          excluded-datacenters: []
+        health-check:
+          enabled: true
+          interval-ms: 30000
+          timeout-ms: 5000
+          
+      # US West IBM MQ
+      us-west-1-ibmmq:
+        type: ibmmq
+        host: mqm-us-west-1.company.com
+        port: 1414
+        queue-manager: QM_US_WEST_1
+        channel: SYSTEM.DEF.SVRCONN
+        username: ${JMS_USERNAME:jms-user}
+        password: ${JMS_PASSWORD:jms-pass}
+        client-id: ${spring.application.name}-us-west-1
+        enabled: true
+        priority: 150
+        connection-pool:
+          max-connections: 15
+          idle-timeout: 300000
+          max-sessions-per-connection: 8
+          connection-timeout: 5000
+          reconnect-interval: 10000
+        queues:
+          orders: "ORDERS.QUEUE"
+          notifications: "NOTIFICATIONS.QUEUE"
+          deadletter: "DEAD.LETTER.QUEUE"
+        topics:
+          events: "EVENTS.TOPIC"
+          audit: "AUDIT.TOPIC"
+        affinity:
+          region: "us-west"
+          zone: "us-west-1a"
+          preferred-datacenters: ["us-west-1-ibmmq", "us-west-2-ibmmq"]
+          excluded-datacenters: []
+        health-check:
+          enabled: true
+          interval-ms: 30000
+          timeout-ms: 5000
+          
+      # Europe IBM MQ
+      eu-central-1-ibmmq:
+        type: ibmmq
+        host: mqm-eu-central-1.company.com
+        port: 1414
+        queue-manager: QM_EU_CENTRAL_1
+        channel: SYSTEM.DEF.SVRCONN
+        username: ${JMS_USERNAME:jms-user}
+        password: ${JMS_PASSWORD:jms-pass}
+        client-id: ${spring.application.name}-eu-central-1
+        enabled: true
+        priority: 300
+        connection-pool:
+          max-connections: 10
+          idle-timeout: 300000
+          max-sessions-per-connection: 5
+          connection-timeout: 5000
+          reconnect-interval: 10000
+        queues:
+          orders: "ORDERS.QUEUE"
+          notifications: "NOTIFICATIONS.QUEUE"
+          deadletter: "DEAD.LETTER.QUEUE"
+        topics:
+          events: "EVENTS.TOPIC"
+          audit: "AUDIT.TOPIC"
+        affinity:
+          region: "eu-central"
+          zone: "eu-central-1a"
+          preferred-datacenters: ["eu-central-1-ibmmq"]
+          excluded-datacenters: ["us-east-1-artemis", "us-east-2-artemis"] # Don't failover across continents
+        health-check:
+          enabled: true
+          interval-ms: 45000  # Longer interval for international connections
+          timeout-ms: 10000
+
+    # Failover configuration
+    failover:
+      enabled: true
+      strategy: "priority" # priority, round-robin, random
+      max-retries: 3
+      retry-delay-ms: 1000
+      cross-region-enabled: false
+      exclude-unhealthy-datacenters: true
+      
+    # Load balancing configuration  
+    load-balancing:
+      enabled: true
+      strategy: "weighted-round-robin" # round-robin, weighted-round-robin, least-connections, random
+      weights:
+        us-east-1-artemis: 100
+        us-east-2-artemis: 80
+        us-west-1-ibmmq: 60
+        eu-central-1-ibmmq: 40
+      sticky-sessions: false
+      health-check-weight-adjustment: true
+      
+    # Resiliency configuration
+    resiliency:
+      retry:
+        enabled: true
+        max-attempts: 3
+        delay-ms: 1000
+        exponential-backoff: true
+        max-delay-ms: 30000
+      circuit-breaker:
+        enabled: true
+        failure-threshold: 5
+        reset-timeout-ms: 60000
+        half-open-max-calls: 3
+      rate-limiting:
+        enabled: true
+        max-calls-per-second: 100
+        burst-capacity: 200
+        
+    # Health monitoring
+    health-check:
+      enabled: true
+      interval-ms: 30000
+      timeout-ms: 5000
+      retry-count: 3
+      retry-delay-ms: 1000
+
+# Spring Boot Actuator for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,jms-library
+  endpoint:
+    health:
+      show-details: always
+      
+# Logging configuration
+logging:
+  level:
+    '[com.prospringjms]': INFO
+    '[org.springframework.jms]': DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
