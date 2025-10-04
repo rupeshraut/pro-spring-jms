@@ -1,0 +1,110 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' version '3.2.12'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'maven-publish'
+}
+
+group = 'com.prospringjms'
+version = '1.0.0'
+sourceCompatibility = '17'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-configuration-processor'
+    
+    // Jakarta JMS
+    implementation 'jakarta.jms:jakarta.jms-api:3.1.0'
+    implementation 'org.springframework:spring-jms'
+    
+    // Apache Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'org.apache.kafka:kafka-clients'
+    
+    // GraphQL
+    implementation 'org.springframework.boot:spring-boot-starter-graphql'
+    implementation 'com.graphql-java:graphql-java-extended-scalars:21.0'
+    
+    // HTTP Clients
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'io.netty:netty-resolver-dns-native-macos:4.1.100.Final:osx-aarch_64'
+    
+    // Resilience4j
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-retry:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-bulkhead:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-ratelimiter:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-timelimiter:2.1.0'
+    
+    // Observability
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    
+    // Connection Pooling
+    implementation 'org.apache.commons:commons-pool2'
+    
+    // JSON Processing
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
+    // Logging
+    implementation 'org.slf4j:slf4j-api'
+    
+    // Main library dependency
+    implementation project(':lib')
+    
+    // Test Dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.wiremock:wiremock-standalone:3.0.1'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Publishing configuration
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'Pro Spring JMS Connector Library'
+                description = 'Backend connector library supporting REST, JMS, Kafka, and GraphQL with resilience patterns'
+                url = 'https://github.com/rupeshraut/pro-spring-jms'
+                
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'rupeshraut'
+                        name = 'Rupesh Raut'
+                        email = 'rupesh.raut@example.com'
+                    }
+                }
+            }
+        }
+    }
+}

@@ -66,7 +66,7 @@ public abstract class VetroMessageProcessor {
     public final ProcessingResult processMessage(Object inputPayload, ProcessingContext context) {
         // Convert to session-aware context (session will be null in this case)
         SessionAwareProcessingContext sessionContext = new SessionAwareProcessingContext(
-            null, null, "legacy");
+            null, null, "legacy", context.getCorrelationId());
         sessionContext.setMaxRetryAttempts(defaultMaxRetryAttempts);
         sessionContext.setAttribute("payload", inputPayload);
         sessionContext.setAttribute("legacyContext", context);

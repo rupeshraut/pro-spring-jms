@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import jakarta.jms.Message;
 import jakarta.jms.TextMessage;
@@ -32,8 +33,11 @@ public class VetroJmsIntegrationService {
     
     private static final Logger logger = LoggerFactory.getLogger(VetroJmsIntegrationService.class);
     
-    @Autowired
+    @Autowired(required = false)
     private JmsListenerRegistry listenerRegistry;
+    
+    @Value("${jms.lib.enabled:false}")
+    private boolean jmsEnabled;
     
     @Autowired
     private OrderVetroProcessor orderProcessor;
@@ -46,6 +50,11 @@ public class VetroJmsIntegrationService {
      */
     @PostConstruct
     public void initializeListeners() {
+        if (!jmsEnabled || listenerRegistry == null) {
+            logger.info("JMS is disabled or not available. Skipping VETRO JMS integration service initialization.");
+            return;
+        }
+        
         try {
             setupOrderMessageListener();
             setupPaymentMessageListener();

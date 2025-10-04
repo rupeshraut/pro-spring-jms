@@ -10,3 +10,8 @@ logging:
   level:
     root: WARN
     '[com.prospringjms]': INFO
+
+# Minimal JMS configuration for testing
+jms:
+  lib:
+    enabled: false

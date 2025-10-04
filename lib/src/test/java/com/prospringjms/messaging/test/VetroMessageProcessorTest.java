@@ -2,12 +2,17 @@ package com.prospringjms.messaging.test;
 
 import com.prospringjms.messaging.VetroMessageProcessor;
 import com.prospringjms.messaging.examples.OrderVetroProcessor;
+import com.prospringjms.sender.ResilientJmsSender;
+import com.prospringjms.sender.ResilientJmsSender.SendResult;
+import com.prospringjms.listener.JmsListenerRegistry;
+import com.prospringjms.exception.JmsLibraryException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -30,10 +35,25 @@ public class VetroMessageProcessorTest {
     
     private OrderVetroProcessor processor;
     
+    @Mock
+    private ResilientJmsSender mockJmsSender;
+    
+    @Mock
+    private JmsListenerRegistry mockListenerRegistry;
+    
     @BeforeEach
-    void setUp() {
+    void setUp() throws JmsLibraryException {
         processor = new OrderVetroProcessor();
-        // In a real test, you'd inject mocked dependencies
+        
+        // Inject mocked dependencies using ReflectionTestUtils
+        ReflectionTestUtils.setField(processor, "jmsSender", mockJmsSender);
+        ReflectionTestUtils.setField(processor, "listenerRegistry", mockListenerRegistry);
+        
+        // Create mock SendResult for successful operations
+        SendResult successResult = new SendResult("primary", "test.queue", true, 100L, null);
+        
+        // Mock successful JMS sending (lenient to avoid unnecessary stubbing errors)
+        lenient().when(mockJmsSender.sendToPrimary(anyString(), any(), any())).thenReturn(successResult);
     }
     
     @Test
@@ -99,13 +119,18 @@ public class VetroMessageProcessorTest {
         
         // Then
         assertEquals(VetroMessageProcessor.ProcessingStatus.SUCCESS, result.getStatus());
-        assertTrue((Boolean) context.getProperty("highValueOrder"));
         
-        // Check that high value orders are routed to approval queue
+        // Check that high value orders are routed to approval queue and require approval
         VetroMessageProcessor.RoutingDecision routing = result.getRoutingDecision();
         assertEquals("approval.orders.queue", routing.getDestination());
         assertTrue(routing.isExpectResponse());
         assertNotNull(routing.getResponseDestination());
+        
+        // Verify the transformed order has high value characteristics
+        OrderVetroProcessor.TransformedOrderMessage transformed = 
+            (OrderVetroProcessor.TransformedOrderMessage) result.getTransformedPayload();
+        assertTrue(transformed.isRequiresApproval());
+        assertEquals("HIGH", transformed.getPriority());
     }
     
     @Test
@@ -153,7 +178,7 @@ public class VetroMessageProcessorTest {
         
         // Check standard customer routing (load balanced to secondary)
         VetroMessageProcessor.RoutingDecision routing = result.getRoutingDecision();
-        assertEquals("standard.orders.queue", routing.getDatacenter());
+        assertEquals("standard.orders.queue", routing.getDestination());
         assertEquals("secondary", routing.getDatacenter());
         assertEquals("NORMAL", routing.getHeaders().get("priority"));
     }

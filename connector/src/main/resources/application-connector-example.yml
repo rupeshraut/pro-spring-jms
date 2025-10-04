@@ -1,0 +1,292 @@
+# VETRO Configuration Example with Backend Connectors
+# This configuration demonstrates how to integrate the new connector module
+# with VETRO processors for enhanced backend operations
+
+# Connector Module Configuration
+prospringjms:
+  connector:
+    # Global connector settings
+    circuit-breaker:
+      failure-rate-threshold: 50.0
+      slow-call-duration-threshold: PT2S
+      slow-call-rate-threshold: 50.0
+      wait-duration-in-open-state: PT30S
+      sliding-window-size: 10
+      minimum-number-of-calls: 5
+      
+    retry:
+      max-attempts: 3
+      wait-duration: PT1S
+      retry-exceptions:
+        - java.util.concurrent.TimeoutException
+        - org.springframework.web.reactive.function.client.WebClientResponseException
+        
+    bulkhead:
+      max-concurrent-calls: 10
+      max-wait-duration: PT5S
+      
+    rate-limiter:
+      limit-for-period: 100
+      limit-refresh-period: PT1M
+      timeout-duration: PT10S
+      
+    time-limiter:
+      timeout-duration: PT5S
+      cancel-running-future: true
+    
+    # REST Connector Configuration
+    rest:
+      enabled: true
+      max-in-memory-size: 1048576  # 1MB
+      default-timeout: PT30S
+      
+    # JMS Connector Configuration  
+    jms:
+      enabled: true
+      default-timeout: PT30S
+      correlation-id-header: "JMSCorrelationID"
+      
+    # Kafka Connector Configuration
+    kafka:
+      enabled: true
+      default-timeout: PT30S
+      acks: "all"
+      retries: 3
+      
+    # GraphQL Connector Configuration
+    graphql:
+      enabled: true
+      max-in-memory-size: 2097152  # 2MB
+      default-endpoint: "http://localhost:8080/graphql"
+      default-timeout: PT30S
+
+  # Enhanced VETRO Configuration with Backend Connectors
+  vetro:
+    processors:
+      # Validate Step - Input validation with external service verification
+      validate:
+        class: "com.prospringjms.lib.vetro.processors.ValidateProcessor"
+        config:
+          # Validate against external REST API
+          external-validation:
+            enabled: true
+            connector-type: "REST"
+            endpoint: "https://api.example.com/validate"
+            method: "POST"
+            timeout: "PT5S"
+            headers:
+              Content-Type: "application/json"
+              Authorization: "Bearer ${validation.api.token}"
+          
+          # Schema validation rules
+          schema:
+            required-fields: ["id", "type", "payload"]
+            max-payload-size: 1048576
+            allowed-types: ["ORDER", "PAYMENT", "NOTIFICATION"]
+            
+      # Enrich Step - Data enrichment from multiple backend services
+      enrich:
+        class: "com.prospringjms.lib.vetro.processors.EnrichProcessor"
+        config:
+          enrichments:
+            # Customer data from REST API
+            - name: "customer-data"
+              connector-type: "REST"
+              endpoint: "https://api.example.com/customers/${message.customerId}"
+              method: "GET"
+              timeout: "PT3S"
+              target-path: "enriched.customer"
+              fallback-strategy: "SKIP"
+              
+            # Product catalog from GraphQL
+            - name: "product-catalog"
+              connector-type: "GRAPHQL"
+              endpoint: "https://catalog.example.com/graphql"
+              query: |
+                query GetProduct($productId: ID!) {
+                  product(id: $productId) {
+                    id
+                    name
+                    category
+                    price
+                    availability
+                  }
+                }
+              variables:
+                productId: "${message.productId}"
+              target-path: "enriched.product"
+              timeout: "PT2S"
+              
+            # Inventory check via Kafka request-response
+            - name: "inventory-check"
+              connector-type: "KAFKA"
+              topic: "inventory.check.request"
+              response-topic: "inventory.check.response"
+              correlation-key: "${message.correlationId}"
+              timeout: "PT5S"
+              target-path: "enriched.inventory"
+              
+      # Transform Step - Data transformation with configuration lookup
+      transform:
+        class: "com.prospringjms.lib.vetro.processors.TransformProcessor"
+        config:
+          # Load transformation rules from external service
+          rules-source:
+            connector-type: "REST"
+            endpoint: "https://config.example.com/transform-rules/${message.type}"
+            method: "GET"
+            cache-ttl: "PT1H"
+            
+          transformations:
+            # Standard field mappings
+            - type: "FIELD_MAPPING"
+              rules:
+                "customer.id": "customerId"
+                "product.sku": "productCode"
+                "order.total": "totalAmount"
+                
+            # Dynamic transformations based on message type
+            - type: "CONDITIONAL"
+              condition: "message.type == 'ORDER'"
+              transformations:
+                - field: "priority"
+                  expression: "enriched.customer.tier == 'PREMIUM' ? 'HIGH' : 'NORMAL'"
+                - field: "fulfillment.method"
+                  expression: "enriched.inventory.available > 0 ? 'STANDARD' : 'BACKORDER'"
+                  
+      # Route Step - Multi-destination routing based on business rules
+      route:
+        class: "com.prospringjms.lib.vetro.processors.RouteProcessor"
+        config:
+          routing-rules:
+            # High priority orders to express queue via JMS
+            - condition: "transformed.priority == 'HIGH'"
+              destinations:
+                - connector-type: "JMS"
+                  destination: "queue.orders.express"
+                  delivery-mode: "PERSISTENT"
+                  priority: 9
+                  
+            # Regular orders to standard processing via Kafka
+            - condition: "transformed.priority == 'NORMAL'"
+              destinations:
+                - connector-type: "KAFKA"
+                  topic: "orders.standard"
+                  partition-key: "${transformed.customerId}"
+                  
+            # Notifications via REST webhook
+            - condition: "transformed.type == 'NOTIFICATION'"
+              destinations:
+                - connector-type: "REST"
+                  endpoint: "https://notifications.example.com/webhook"
+                  method: "POST"
+                  headers:
+                    Content-Type: "application/json"
+                    X-Event-Type: "order.notification"
+                    
+            # Audit events to multiple destinations
+            - condition: "true"  # Always execute
+              destinations:
+                # Real-time audit via Kafka
+                - connector-type: "KAFKA"
+                  topic: "audit.events"
+                  partition-key: "${transformed.id}"
+                  async: true
+                  
+                # Compliance logging via GraphQL mutation
+                - connector-type: "GRAPHQL"
+                  endpoint: "https://compliance.example.com/graphql"
+                  mutation: |
+                    mutation LogEvent($event: AuditEventInput!) {
+                      logAuditEvent(event: $event) {
+                        id
+                        timestamp
+                      }
+                    }
+                  variables:
+                    event: "${transformed}"
+                  async: true
+                  
+      # Operate Step - Business operations with external service integration
+      operate:
+        class: "com.prospringjms.lib.vetro.processors.OperateProcessor"
+        config:
+          operations:
+            # Update inventory via REST API
+            - name: "update-inventory"
+              condition: "transformed.type == 'ORDER' && transformed.status == 'CONFIRMED'"
+              connector-type: "REST"
+              endpoint: "https://inventory.example.com/api/reserve"
+              method: "POST"
+              payload: |
+                {
+                  "productId": "${transformed.productCode}",
+                  "quantity": ${transformed.quantity},
+                  "orderId": "${transformed.id}",
+                  "customerId": "${transformed.customerId}"
+                }
+              success-action: "CONTINUE"
+              failure-action: "ROLLBACK"
+              
+            # Send confirmation email via message queue
+            - name: "send-confirmation"
+              condition: "transformed.type == 'ORDER'"
+              connector-type: "JMS"
+              destination: "queue.email.notifications"
+              payload: |
+                {
+                  "template": "order-confirmation",
+                  "recipient": "${transformed.customer.email}",
+                  "data": {
+                    "orderId": "${transformed.id}",
+                    "customerName": "${transformed.customer.name}",
+                    "orderTotal": "${transformed.totalAmount}"
+                  }
+                }
+              async: true
+              
+            # Update customer loyalty points via GraphQL
+            - name: "update-loyalty-points"
+              condition: "transformed.customer.tier == 'LOYALTY' && transformed.type == 'ORDER'"
+              connector-type: "GRAPHQL"
+              endpoint: "https://loyalty.example.com/graphql"
+              mutation: |
+                mutation UpdatePoints($customerId: ID!, $points: Int!) {
+                  updateLoyaltyPoints(customerId: $customerId, points: $points) {
+                    newBalance
+                    tierStatus
+                  }
+                }
+              variables:
+                customerId: "${transformed.customerId}"
+                points: "${Math.floor(transformed.totalAmount / 10)}"
+              async: true
+              timeout: "PT10S"
+
+# Connector Health and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,metrics,prometheus,connectors"
+  endpoint:
+    health:
+      show-details: always
+    connectors:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles:
+        connector.operation.duration: 0.5, 0.95, 0.99
+        connector.circuit.breaker: 0.5, 0.95, 0.99
+
+# Logging Configuration
+logging:
+  level:
+    com.prospringjms.connector: DEBUG
+    io.github.resilience4j: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"

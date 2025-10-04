@@ -28,6 +28,9 @@ dependencies {
     // Use the lib module
     implementation project(':lib')
     
+    // Use the connector module  
+    implementation project(':connector')
+    
     // Demo application specific dependencies
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.apache.activemq:artemis-jakarta-server:2.31.2'

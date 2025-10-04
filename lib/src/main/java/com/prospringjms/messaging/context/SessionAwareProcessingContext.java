@@ -43,6 +43,20 @@ public class SessionAwareProcessingContext {
         this.currentRetryAttempt = 1;
     }
     
+    // Constructor for legacy contexts with explicit correlation ID
+    public SessionAwareProcessingContext(Message originalMessage, Session jmsSession, 
+                                       String sourceDestination, String correlationId) {
+        this.correlationId = correlationId != null ? correlationId : generateCorrelationId(originalMessage);
+        this.processingStartTime = LocalDateTime.now();
+        this.firstAttemptTime = this.processingStartTime;
+        this.attributes = new HashMap<>();
+        this.originalMessage = originalMessage;
+        this.jmsSession = jmsSession;
+        this.sourceDestination = sourceDestination;
+        this.sessionTransacted = isSessionTransacted(jmsSession);
+        this.currentRetryAttempt = 1;
+    }
+    
     // Copy constructor for retry scenarios
     private SessionAwareProcessingContext(SessionAwareProcessingContext original, 
                                         RetryContext retryContext) {

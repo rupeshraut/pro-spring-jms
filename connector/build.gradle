@@ -1,0 +1,106 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' version '3.2.12'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'maven-publish'
+}
+
+group = 'com.prospringjms'
+version = '1.0.0'
+sourceCompatibility = '17'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Main lib project dependency
+    implementation project(':lib')
+    
+    // Core Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // WebFlux for REST connector
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    
+    // JMS Support
+    implementation 'org.springframework.boot:spring-boot-starter-artemis'
+    implementation 'jakarta.jms:jakarta.jms-api:3.1.0'
+    
+    // Kafka Support
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'org.apache.kafka:kafka-clients'
+    
+    // GraphQL Support
+    implementation 'org.springframework.boot:spring-boot-starter-graphql'
+    implementation 'com.graphql-java:graphql-java-extended-scalars:21.0'
+    
+    // Basic resilience support
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-retry:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-bulkhead:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-ratelimiter:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-timelimiter:2.1.0'
+    
+    // Observability
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-core'
+    
+    // Jackson for JSON processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    
+    // Annotations
+    implementation 'org.springframework.boot:spring-boot-configuration-processor'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    
+    // Test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:kafka'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Disable bootJar since this is a library
+jar {
+    archiveClassifier = ''
+    enabled = true
+}
+
+bootJar {
+    enabled = false
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'Pro Spring JMS Connector'
+                description = 'Backend connector library supporting resilience patterns'
+                url = 'https://github.com/example/pro-spring-jms'
+                
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'prospringjms'
+                        name = 'Pro Spring JMS Team'
+                        email = 'dev@prospringjms.com'
+                    }
+                }
+            }
+        }
+    }
+}
