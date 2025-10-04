@@ -13,6 +13,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Unit tests for VETRO message processing functionality.
  * 
@@ -22,6 +25,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @SpringJUnitConfig
 public class VetroMessageProcessorTest {
+    
+    private static final Logger logger = LoggerFactory.getLogger(VetroMessageProcessorTest.class);
     
     private OrderVetroProcessor processor;
     

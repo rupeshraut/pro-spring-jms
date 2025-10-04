@@ -5,6 +5,7 @@ import com.prospringjms.sender.ResilientJmsSender;
 import com.prospringjms.exception.JmsLibraryException;
 import com.prospringjms.messaging.context.SessionAwareProcessingContext;
 import com.prospringjms.messaging.context.RetryContext;
+import com.prospringjms.messaging.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -366,10 +367,10 @@ public abstract class VetroMessageProcessor {
             ResilientJmsSender.SendResult sendResult = jmsSender.sendToPrimary(
                 routingDecision.getDestination(), payload, headers);
             
-            logger.info("Message sent successfully to destination: {}, messageId: {}", 
-                routingDecision.getDestination(), sendResult.getMessageId());
+            logger.info("Message sent successfully to destination: {}, datacenter: {}", 
+                routingDecision.getDestination(), sendResult.getDatacenter());
             
-            return new OperationResult(true, sendResult.getMessageId(), 
+            return new OperationResult(true, context.getCorrelationId(), 
                 sendResult.getDatacenter(), "Message sent successfully");
                 
         } catch (JmsLibraryException e) {
@@ -439,6 +440,14 @@ public abstract class VetroMessageProcessor {
     /**
      * Sets up a JMS listener for response messages if required.
      */
+    private void setupResponseListener(RoutingDecision routingDecision, SessionAwareProcessingContext context) {
+        // Convert to legacy context for the existing method
+        ProcessingContext legacyContext = new ProcessingContext(
+            context.getMessageType(), context.getSourceDestination());
+        legacyContext.addProperty("correlationId", context.getCorrelationId());
+        setupResponseListener(routingDecision, legacyContext);
+    }
+    
     private void setupResponseListener(RoutingDecision routingDecision, ProcessingContext context) {
         if (routingDecision.getResponseDestination() != null) {
             try {

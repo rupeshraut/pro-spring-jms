@@ -85,6 +85,18 @@ public class SessionAwareProcessingContext {
         return attributes.get(key);
     }
     
+    public void addProperty(String key, Object value) {
+        attributes.put(key, value);
+    }
+    
+    public Object getProperty(String key) {
+        return attributes.get(key);
+    }
+    
+    public String getMessageType() {
+        return (String) attributes.getOrDefault("messageType", "unknown");
+    }
+    
     public Message getOriginalMessage() {
         return originalMessage;
     }

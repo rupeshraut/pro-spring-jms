@@ -54,6 +54,9 @@ dependencies {
     api 'io.github.resilience4j:resilience4j-timelimiter:2.1.0'
     api 'io.github.resilience4j:resilience4j-micrometer:2.1.0'
     
+    // Micrometer for metrics - using Spring Boot's managed version
+    api 'io.micrometer:micrometer-core'
+    
     // Validation
     api 'org.springframework.boot:spring-boot-starter-validation'
     
