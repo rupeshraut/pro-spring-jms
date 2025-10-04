@@ -552,6 +552,263 @@ jms:
       queue-capacity: 1000
 ```
 
+### VETRO Message Processing
+
+```yaml
+jms:
+  # VETRO (Validation, Enrichment, Transformation, Routing, Operation) Processing
+  vetro:
+    enabled: true
+    
+    # Processing Configuration
+    processing:
+      # Async processing settings
+      async:
+        enabled: true
+        thread-pool-size: 20
+        queue-capacity: 1000
+        keep-alive-time: 60s
+        
+      # Processing timeouts
+      timeout:
+        validation: 5s
+        enrichment: 10s
+        transformation: 15s
+        routing: 2s
+        operation: 30s
+        
+      # Error handling
+      error-handling:
+        retry-failed-validation: false
+        retry-failed-enrichment: true
+        retry-failed-transformation: true
+        retry-failed-operation: true
+        max-retry-attempts: 3
+        retry-backoff-multiplier: 2.0
+        
+    # Message Processing Listeners
+    listeners:
+      # Order processing with session awareness
+      orders:
+        destination: "incoming.orders.queue"
+        datacenter: "primary"
+        concurrency: "3-10"
+        session-transacted: true
+        processor-class: "com.prospringjms.messaging.examples.OrderVetroProcessor"
+        retry:
+          max-attempts: 3
+          base-delay-ms: 2000
+          backoff-multiplier: 2.0
+          retry-validation: false
+          retry-enrichment: true
+          retry-transformation: true
+          retry-routing: true
+          retry-operation: true
+        
+      # Payment processing with custom retry logic  
+      payments:
+        destination: "incoming.payments.queue"
+        datacenter: "primary"
+        concurrency: "2-5"
+        session-transacted: true
+        processor-class: "com.mycompany.PaymentVetroProcessor"
+        retry:
+          max-attempts: 5
+          base-delay-ms: 1000
+          backoff-multiplier: 1.5
+          retry-validation: false
+          retry-enrichment: true
+          retry-transformation: true
+          retry-routing: false  # Don't retry routing for payments
+          retry-operation: true
+        
+      # Inventory updates (non-transacted)
+      inventory:
+        destination: "incoming.inventory.queue"
+        datacenter: "secondary"
+        concurrency: "1-3"
+        session-transacted: false  # Non-transacted for performance
+        processor-class: "com.mycompany.InventoryVetroProcessor"
+        retry:
+          max-attempts: 2
+          base-delay-ms: 500
+          backoff-multiplier: 2.0
+        
+    # Validation Configuration
+    validation:
+      # Schema validation
+      schema-validation:
+        enabled: true
+        schema-registry-url: "http://schema-registry:8081"
+        cache-schemas: true
+        
+      # Business rule validation  
+      business-rules:
+        enabled: true
+        rules-engine: "drools" # or "easy-rules"
+        rules-location: "classpath:validation-rules/"
+        
+    # Enrichment Configuration
+    enrichment:
+      # Data sources for enrichment
+      data-sources:
+        customer-service:
+          url: "http://customer-service/api/customers"
+          timeout: 5s
+          cache-ttl: 300s
+          
+        product-service:
+          url: "http://product-service/api/products"  
+          timeout: 3s
+          cache-ttl: 600s
+          
+        pricing-service:
+          url: "http://pricing-service/api/pricing"
+          timeout: 2s
+          cache-ttl: 120s
+          
+      # Enrichment caching
+      cache:
+        enabled: true
+        provider: "caffeine" # or "redis"
+        max-size: 10000
+        expire-after-write: 300s
+        
+    # Transformation Configuration  
+    transformation:
+      # Transformation templates
+      templates:
+        enabled: true
+        template-engine: "freemarker" # or "velocity", "mustache"
+        template-location: "classpath:templates/"
+        
+      # Field mapping
+      field-mapping:
+        enabled: true
+        mapping-files:
+          - "classpath:mappings/order-mapping.yaml"
+          - "classpath:mappings/payment-mapping.yaml"
+          
+    # Routing Configuration
+    routing:
+      # Dynamic routing rules
+      rules:
+        # Premium customer routing
+        - name: "premium-customer-routing"
+          condition: "payload.customerInfo.tier == 'PREMIUM'"
+          destination: "premium.orders.queue"
+          datacenter: "primary"
+          headers:
+            priority: "HIGH"
+            
+        # High value order routing    
+        - name: "high-value-order-routing"
+          condition: "payload.amount > 10000"
+          destination: "approval.orders.queue"
+          datacenter: "primary"
+          expect-response: true
+          response-destination: "approval.response.queue"
+          headers:
+            approval-required: "true"
+            
+        # Geographic routing
+        - name: "eu-customer-routing"
+          condition: "payload.customerInfo.region == 'EU'"
+          destination: "eu.orders.queue"
+          datacenter: "eu-primary"
+          
+        # Default routing
+        - name: "default-routing"
+          condition: "true" # Default rule
+          destination: "standard.orders.queue"
+          datacenter: "secondary"
+          
+    # Session Management
+    session-management:
+      # Default session configuration for VETRO processors
+      default-transacted: true
+      default-acknowledge-mode: "AUTO_ACKNOWLEDGE"  # or "CLIENT_ACKNOWLEDGE", "DUPS_OK_ACKNOWLEDGE"
+      
+      # Session timeout settings
+      timeout:
+        transaction: 300s  # 5 minutes for transacted sessions
+        idle: 600s        # 10 minutes for idle sessions
+        
+      # Session pooling
+      pooling:
+        enabled: true
+        min-sessions: 1
+        max-sessions: 20
+        idle-timeout: 300s
+        
+    # Dead Letter Queue Configuration
+    dead-letter-queues:
+      enabled: true
+      
+      # Default DLQ settings
+      default:
+        destination: "vetro.processing.dlq"
+        datacenter: "primary"
+        
+      # Per-processor DLQ configuration
+      processors:
+        orders:
+          destination: "order.processing.dlq"
+          max-message-size: 1024kb
+          retention-policy: "7d"
+          
+        payments:
+          destination: "payment.processing.dlq"
+          max-message-size: 512kb
+          retention-policy: "14d"
+          
+    # Response Handling Configuration
+    response-handling:
+      enabled: true
+      
+      # Response timeout
+      timeout: 300s # 5 minutes
+      
+      # Response correlation
+      correlation:
+        header: "correlationId"
+        auto-cleanup: true
+        cleanup-interval: 3600s # 1 hour
+        
+      # Response listeners (session-aware)
+      listeners:
+        approval-responses:
+          destination: "approval.response.queue"
+          datacenter: "primary"
+          concurrency: "1-2"
+          session-transacted: true
+          
+    # Monitoring and Metrics
+    monitoring:
+      enabled: true
+      
+      # Processing metrics
+      metrics:
+        processing-time: true
+        throughput: true
+        error-rate: true
+        validation-failures: true
+        
+      # Custom metrics
+      custom-metrics:
+        - name: "vetro.orders.processed"
+          type: "COUNTER"
+          tags:
+            - customer-tier
+            - priority
+            
+        - name: "vetro.processing.duration"
+          type: "TIMER"
+          tags:
+            - message-type
+            - processing-step
+```
+
 ## 📝 Configuration Examples
 
 ### Development Environment
